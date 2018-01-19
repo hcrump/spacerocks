@@ -13,7 +13,6 @@ FRICTION = .99
 started = False
 max_rocks = 10
 
-
 class ImageInfo:
     def __init__(self, center, size, radius = 0, lifespan = None, animated = False):
         self.center = center
@@ -73,7 +72,7 @@ explosion_info = ImageInfo([64, 64], [128, 128], 17, 24, True)
 explosion_image = simplegui.load_image("http://commondatastorage.googleapis.com/codeskulptor-assets/lathrop/explosion_alpha.png")
 
 # sound assets purchased from sounddogs.com, please do not redistribute
-soundtrack = simplegui.load_sound("http://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/soundtrack.mp3")
+#soundtrack = simplegui.load_sound("http://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/soundtrack.mp3")
 missile_sound = simplegui.load_sound("http://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/missile.mp3")
 missile_sound.set_volume(.5)
 ship_thrust_sound = simplegui.load_sound("http://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/thrust.mp3")
@@ -81,7 +80,7 @@ explosion_sound = simplegui.load_sound("http://commondatastorage.googleapis.com/
 
 # alternative upbeat soundtrack by composer and former IIPP student Emiel Stopler
 # please do not redistribute without permission from Emiel at http://www.filmcomposer.nl
-#soundtrack = simplegui.load_sound("https://storage.googleapis.com/codeskulptor-assets/ricerocks_theme.mp3")
+soundtrack = simplegui.load_sound("https://storage.googleapis.com/codeskulptor-assets/ricerocks_theme.mp3")
 
 # helper functions to handle transformations
 def angle_to_vector(ang):
@@ -97,8 +96,11 @@ def process_sprite_group(set1,canvas):
             set1.remove(i)
             
 def group_collide(set1,other_object):
+    global explosion_group
     for i in set(set1):
-        if i.collide(other_object):
+        if i.collide(other_object): 
+            my_explosion = Sprite(i.pos,i.vel,0 ,0 , explosion_image, explosion_info,explosion_sound)
+            explosion_group.add(my_explosion)
             set1.remove(i)
             return True
     return False
@@ -175,6 +177,7 @@ class Ship:
     
     def get_position(self):
         return self.pos
+    
 # Sprite class
 class Sprite:
     def __init__(self, pos, vel, ang, ang_vel, image, info, sound = None):
@@ -194,7 +197,11 @@ class Sprite:
             sound.play()
    
     def draw(self, canvas):
-        canvas.draw_image(self.image,self.image_center,self.image_size,self.pos,self.image_size,self.angle)
+        if self.animated:
+            self.image_center = [self.image_center[0] + self.age * self.image_size[0],self.image_center[1]]
+            canvas.draw_image(self.image,self.image_center,self.image_size,self.pos,self.image_size,self.angle)
+        else:
+            canvas.draw_image(self.image,self.image_center,self.image_size,self.pos,self.image_size,self.angle)
         
     def update(self):
         self.angle += self.angle_vel
@@ -218,7 +225,7 @@ class Sprite:
         return self.pos
          
 def draw(canvas):
-    global time,score,started,lives  
+    global time,score,started,lives,delay
     
     # animate background
     time += 1
@@ -231,14 +238,17 @@ def draw(canvas):
 
     # draw ship and sprites
     try:
-        my_ship.draw(canvas)
-        my_ship.update()
         
         if lives > 0:
+            my_ship.draw(canvas)
+            my_ship.update()
+          
             process_sprite_group(rock_group,canvas)
             process_sprite_group(missile_group,canvas)
-
+            process_sprite_group(explosion_group,canvas)
             if group_collide(rock_group,my_ship):
+                ship_kaboom = Sprite(my_ship.pos,my_ship.vel,0 ,0 , explosion_image, explosion_info,explosion_sound)
+                explosion_group.add(ship_kaboom)
                 lives -= 1
             score += group_group_collide(rock_group,missile_group)
         
@@ -256,6 +266,7 @@ def draw(canvas):
         if len(rock_group) > 0:
             for i in set(rock_group):
                 rock_group.remove(i)
+
     if not started:
         canvas.draw_image(splash_image,
                           splash_info.get_center(),
@@ -286,7 +297,7 @@ def keyup(key):
         
 # mouseclick handlers that reset UI and conditions whether splash image is drawn
 def click(pos):
-    global started,score,lives
+    global started,score,lives,my_ship
     center = [WIDTH / 2, HEIGHT / 2]
     size = splash_info.get_size()
     inwidth = (center[0] - size[0] / 2) < pos[0] < (center[0] + size[0] / 2)
@@ -297,6 +308,7 @@ def click(pos):
         score = 0
         lives = 3
         soundtrack.play()
+        my_ship = Ship([WIDTH / 2, HEIGHT / 2], [0, 0], 0, ship_image, ship_info)
         
 # timer handler that spawns a rock    
 def rock_spawner():
@@ -319,6 +331,8 @@ frame = simplegui.create_frame("Asteroids", WIDTH, HEIGHT)
 my_ship = Ship([WIDTH / 2, HEIGHT / 2], [0, 0], 0, ship_image, ship_info)
 rock_group = set([])
 missile_group = set([])
+explosion_group = set([])
+
 
 #rock_spawner()
 #a_rock = Sprite([WIDTH / 3, HEIGHT / 3], [1, 1], 0, 0, asteroid_image, asteroid_info)
