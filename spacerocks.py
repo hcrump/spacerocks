@@ -252,6 +252,7 @@ def draw(canvas):
     canvas.draw_text('Score: '+str(score),[WIDTH*.8,HEIGHT*.1],20,'white')
     if lives == 0 and started:
         started = False
+        soundtrack.rewind()
         if len(rock_group) > 0:
             for i in set(rock_group):
                 rock_group.remove(i)
@@ -295,6 +296,7 @@ def click(pos):
         started = True
         score = 0
         lives = 3
+        soundtrack.play()
         
 # timer handler that spawns a rock    
 def rock_spawner():
@@ -303,10 +305,12 @@ def rock_spawner():
     vel = [random.randrange(-10,20)/10.0, random.randrange(-10,20)/10.0]
     ang = random.randrange(1,7)
     vel_ang = random.randrange(-10,10)/100.0
+    spawn_on_ship = dist(pos,my_ship.pos)
 
-    if len(rock_group) < max_rocks:
-        a_rock = Sprite(pos,vel,ang,vel_ang, asteroid_image, asteroid_info)
-        rock_group.add(a_rock)
+    if len(rock_group) < max_rocks and started:
+        if spawn_on_ship > 2 * my_ship.get_radius():
+            a_rock = Sprite(pos,vel,ang,vel_ang, asteroid_image, asteroid_info)
+            rock_group.add(a_rock)
     
 # initialize frame
 frame = simplegui.create_frame("Asteroids", WIDTH, HEIGHT)
